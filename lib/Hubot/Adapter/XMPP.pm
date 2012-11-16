@@ -43,7 +43,6 @@ sub _build_muc {
 
 sub send {
     my ($self, $user, @strings) = @_;
-    say "SEND: " . $user->{room};
 
     my $room = $user->{room};
     for (@strings) {
@@ -58,7 +57,6 @@ sub reply {
     my ($self, $user, @strings) = @_;
     @strings = map { $user->{name} . ": $_" } @strings;
     $self->send( $user, @strings );
-    say "REPLY: " . $user->{room};
 }
 
 sub run {
@@ -114,17 +112,13 @@ sub run {
             );
         },
         recv_message => sub {
-            say "recevied message";
         },
         connected => sub {
-            say "connected, joining rooms";
         },
         diconnected => sub {
-            say "disconnected";
         },
         message => sub {
             my ($xmpp, $acc, $msg) = @_;
-            say "message from " . $msg->from . ": " . $msg->any_body;
             # Should send to stats tool here
         },
         error => sub {
