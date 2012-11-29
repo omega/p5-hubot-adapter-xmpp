@@ -34,17 +34,12 @@ sub _build_presence {
     return $pres;
 }
 
-has muc => (is => 'ro', lazy => 1, builder => '_build_muc');
-
-
-sub _build_muc {
-    my $self = shift;
-}
+has muc => (is => 'rw');
 
 sub send {
     my ($self, $user, @strings) = @_;
-
-    my $room = $user->{room};
+    my $con = $self->xmpp->find_account_for_dest_jid( $user->{room} );
+    my $room = $self->muc->get_room($con, $user->{room});
     for (@strings) {
         my $msg = $room->make_message();
 
@@ -79,6 +74,8 @@ sub run {
             my ($xmpp, $acc) = @_;
             # Lets setup MUC then..
             my $muc = AnyEvent::XMPP::Ext::MUC->new( connection => $acc->connection, disco => $self->disco );
+            $self->muc($muc); # XXX: mutable state :((
+
             $xmpp->add_extension($muc);
             $muc->join_room($acc->connection, $_, $options{nick},
                 history => {
@@ -92,7 +89,7 @@ sub run {
                     my ($client, $room, $msg, $is_echo) = @_;
                     my $user = $self->createUser($room, $msg->from_nick);
                     return unless $user;
-                    $user->{room} = $room;
+                    $user->{room} = $room->jid;
                     $self->receive(
                         Hubot::TextMessage->new(
                             user => $user,
@@ -104,7 +101,7 @@ sub run {
                     my ($client, $room, $user) = @_;
                     $user = $self->createUser($room, $user);
                     return unless $user;
-                    $user->{room} = $room;
+                    $user->{room} = $room->jid;
                     $self->receive(
                         Hubot::EnterMessage->new( user => $user )
                     );
@@ -145,7 +142,7 @@ sub createUser {
             $id,
             {
                 name => $nick,
-                room => $room,
+                room => $room->jid,
             }
         );
     }
